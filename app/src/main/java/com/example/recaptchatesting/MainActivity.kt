@@ -1,4 +1,4 @@
-package com.example.recaptchatesting.ui
+package com.example.recaptchatesting
 
 import android.os.Bundle
 import android.util.Log
@@ -7,12 +7,9 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.android.volley.DefaultRetryPolicy
-import com.android.volley.Request
 import com.android.volley.RequestQueue
-import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
-import com.example.recaptchatesting.R
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.safetynet.SafetyNet
@@ -23,8 +20,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     lateinit var loginBtn : Button;
     lateinit var queue: RequestQueue;
-    var SITE_KEY = "6LeaN24UAxxxxx_YOUR_SITE_KEY"
-    var SECRET_KEY = "6LeaN24UAxxxxx_YOUR_SECRET_KEY"
+    var SITE_KEY = "6Lf3R-IhAAAAAHyFKiN94fVHY5VISC2nOqIYGJal"
+    var SECRET_KEY = "6Lf3R-IhAAAAALvMzkaR0iBzanxqvk_XsKfKGASu"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,28 +36,27 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     override fun onClick(p0: View?) {
         SafetyNet.getClient(this).verifyWithRecaptcha(SITE_KEY)
             .addOnSuccessListener(this) { response ->
-                if (response.tokenResult?.isNotEmpty() == true) {
-//                    handleSiteVerify(response.tokenResult)
+                val tokenResult = response.tokenResult
+                if (!tokenResult.isNullOrBlank()) {
+                    handleSiteVerify(tokenResult)
                 }
             }
             .addOnFailureListener(this) { e ->
                 if (e is ApiException) {
                     Log.d(
-                        "TAG", "Error message: " +
+                        "<TAG>", "Error message: " +
                                 CommonStatusCodes.getStatusCodeString(e.statusCode)
                     )
                 } else {
-                    Log.d("TAG", "Unknown type of error: " + e.message)
+                    Log.d("<TAG>", "Unknown type of error: " + e.message)
                 }
             }
     }
 
-    fun handleSiteVerify() {
-        // it is google recaptcha siteverify server
-        //you can place your server url
+    private fun handleSiteVerify(responseToken: String) {
         val url = "https://www.google.com/recaptcha/api/siteverify";
-        val request = StringRequest(
-            Request.Method.POST, url,
+        val request = object: StringRequest(
+            Method.POST, url,
              { response ->
                  try {
                      val jsonObject = JSONObject(response)
@@ -79,13 +75,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                          ).show()
                      }
                  } catch (ex: Exception) {
-                     Log.d("TAG", "JSON exception: " + ex.message)
+                     Log.d("<TAG>", "JSON exception: " + ex.message)
                  }
              },
             { error ->
-                Log.d("TAG", "Error message: " + error.message);
-            })
-        // TODO: ADD PARAM, REF: https://www.javatpoint.com/kotlin-using-google-recaptcha-in-android-application
+                Log.d("<TAG>", "Error message: " + error.message);
+            }) {
+            override fun getParams(): MutableMap<String, String> {
+                val params: MutableMap<String, String> = HashMap()
+                params["secret"] = SECRET_KEY
+                params["response"] = responseToken
+                return params
+            }
+        }
 
         request.retryPolicy = DefaultRetryPolicy(
             50000,
